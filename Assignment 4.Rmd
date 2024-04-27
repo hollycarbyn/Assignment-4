@@ -1,0 +1,70 @@
+---
+title: "Assignment 4"
+author: "Holly"
+date: "2024-04-27"
+output: html_document
+---
+
+```{r}
+#load required packages
+library(tidyverse)
+library(flexplot)
+library(lme4)
+library(haven)
+
+#load in the data
+mydata <- read_spss("P6003.A4.sav")
+
+#Visualize univariate distributions
+flexplot(swl~1, data = mydata)
+flexplot(tipm.E~1, data = mydata)
+flexplot(tipm.N~1, data = mydata)
+
+#Run a baseline linear mixed model for the outcome 
+baseline <- lmer(swl ~ 1+(1|id), data = mydata)
+summary(baseline)
+
+#Compute ICC 
+icc(baseline)
+
+#Create reduced model for extraversion (only as fixed)
+fixed_extra <- lmer(swl ~  tipm.E + (1|id), data = mydata)
+summary(fixed_extra)
+
+#create full model for extraversion (random + fixed)
+random_extra <- lmer(swl ~ tipm.E + (tipm.E|id), data = mydata)
+summary(random_extra)
+
+#model comparison to see if fixed or fixed and random is a better method 
+model.comparison(fixed_extra, random_extra)
+
+#Took best fitting model (random) and added next variable to test
+fixed_neuro <- lmer(swl ~ tipm.E + tipm.N + (tipm.E|id), data = mydata)
+model.comparison(random_extra, fixed_neuro)
+
+#Added random neurotecism to test against fixed neurotecism (still including extraversion)
+random_neuro <- lmer(swl ~ tipm.E + tipm.N + (tipm.E + tipm.N|id), data = mydata)
+model.comparison(fixed_neuro, random_neuro)
+
+#Visualize the linear mixed model 
+visualize(random_neuro, plot = "model")
+
+#Get diagnostics for the model 
+visualize(random_neuro, plot = "residuals" )
+
+#Get summary of the model 
+summary(random_neuro)
+
+#Get key estimates of the model
+estimates(random_neuro)
+
+#create tables for descriptive statistics, correlations, and model outputs 
+library(apaTables)
+library(sjPlot)
+
+tabledata <- dplyr::select(mydata, swl, tipm.N, tipm.E)
+table1 <- apa.cor.table(tabledata, 
+                        table.number=1, filename = "Table1.doc")
+
+tab_model(random_neuro)
+```
